@@ -1,11 +1,13 @@
 class Node():
-    def __init__(self, ID, posX, posY, population, travel_time, neighbors, EPHC, PPHC):
+    def __init__(self, name, ID, pos_x, pos_y, population, travel_time, neighbors, neighbors_subway, EPHC, PPHC):
+        self.name = name
         self.ID = ID
-        self.posX = posX
-        self.posY = posY
+        self.pos_x = pos_x
+        self.pos_y = pos_y
         self.population = population
         self.travel_time = travel_time
         self.neighbors = neighbors
+        self.neighbors_subway = neighbors_subway
         self.EPHC = EPHC
         self.PPHC = PPHC
 
@@ -17,13 +19,15 @@ class Node():
 
     def get_node_neighbors(self):
         return self.neighbors
-
+    def get_node_neighbors_subway(self):
+        return self.neighbors_subway
 #n1 = Node(1,2,10,[1,2,3,4],[])
 # print(n1.get_position())
 
 
 class Edge():
-    def __init__(self, ID, type, line, tail, head, travel_time):
+    def __init__(self, name, ID, type, line, tail, head, travel_time):
+        self.name = name
         self.ID = ID
         self.type = type
         self.line = line
