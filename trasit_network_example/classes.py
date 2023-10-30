@@ -1,31 +1,50 @@
 class Node():
-    def __init__(self, name, ID, pos_x, pos_y, population, travel_time, neighbors, neighbors_subway, EPHC, PPHC):
+    def __init__(self, name, ID, x_axis, y_axis, population, travel_time, neighbors, EPHC, PPHC):
         self.name = name
         self.ID = ID
-        self.pos_x = pos_x
-        self.pos_y = pos_y
+        self.x_axis = x_axis
+        self.y_axis = y_axis
         self.population = population
         self.travel_time = travel_time
         self.neighbors = neighbors
-        self.neighbors_subway = neighbors_subway
         self.EPHC = EPHC
         self.PPHC = PPHC
 
-    def get_node_position(self):
-        return self.posX, self.posY
+    def get_node_travel_time(self):
+        return self.travel_time
+
+    def get_node_population(self):
+        return self.population       
     
     def get_node_ID(self):
         return self.ID
 
     def get_node_neighbors(self):
         return self.neighbors
-    def get_node_neighbors_subway(self):
-        return self.neighbors_subway
+
+    def get_node_name(self):
+        return self.name
+
+    def get_node_x_axis(self):
+        return self.x_axis
+
+    def get_node_y_axis(self):
+        return self.y_axis
+
+    def get_node_position(self):
+        return self.x_axis, self.y_axis    
+
+    def get_node_EPHC(self):
+        return self.EPHC 
+
+    def get_node_PPHC(self):
+        return self.PPHC
+
 #n1 = Node(1,2,10,[1,2,3,4],[])
 # print(n1.get_position())
 
 
-class Edge():
+"""class Edge():
     def __init__(self, name, ID, type, line, tail, head, travel_time):
         self.name = name
         self.ID = ID
@@ -42,4 +61,4 @@ class Edge():
         return self.head    
 
     def get_edge_travel_time(self):
-        return self.travel_time 
+        return self.travel_time """

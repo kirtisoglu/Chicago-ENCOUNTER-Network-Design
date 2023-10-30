@@ -5,161 +5,154 @@ import random
 
 grid = {}  # dictionary for grid
 V_blocks = {}  # set of vertices correspoding to blocks 
-V_EPHC = {}  # set of vertices corresponding to existing PHCs
-V_PPHC = {}  # set of vertices corresponding to possible PHCs
+V_stops = {}  # set of vertices corresponding to stops
+V_existing = {}  # set of vertices corresponding to existing PHCs
+V_possible = {}  # set of vertices corresponding to possible PHCs
+pop = [] # list of populations
 
-
-# Columns of a node are name, ID, pos_x, pos_y, population (int, 10-50), travel_time, 
-#                       neighbors (set), EPHC (int, 0-1), PPHC
-" time = define travel_time column somehow. It will be a list of travel times to all PHCs."
-
-
-def id(t,V_s,V_b):
-    if t in V_b:      # block nodes
-        result = 0
-    if t in V_s:      # stop nodes  
+def create_id(name,n,m):
+    if name in create_stops(n, m):      # stop nodes  
         result = 1    
+    else: 
+        result = 0     
     return result
 
-def x_axis(t):
-    i = t[0]
+def create_x_axis(name):
+    i = name[0]
     noise_x = np.random.normal(0,0.1)   
     pos_x = i + noise_x
     return pos_x
 
-def y_axis(t):
-    j = t[1]
+def create_y_axis(name):
+    j = name[1]
     noise_y = np.random.normal(0,0.1)
     pos_y = j + noise_y
     return pos_y
 
-def population(t, V_b, V_s):
-    i = t[0]
-    j = t[1]
+def create_population(name,n,m,p_min,p_max):
+    i = name[0]
+    j = name[1]
 
-    if t in V_s:
-        result = 0  # population of stop nodes is zero.
-    if t in V_b:            
-        result =  random.randrange(10,50)
+    if name in create_stops(n,m):
+        result = 0  # population of a stop node is zero.
+    else:            
+        result =  random.randrange(p_min,p_max)
     
     return result
 
-
-def neighbors(t,n,m):
-    i = t[0]
-    j = t[1]
-    neighbors = {}    
+def create_neighbors(name,n,m):
+    i = name[0]
+    j = name[1]
+    neighbors = set()   
     if i == 0 or i == n - 1 or j == 0 or j == m - 1:   # corners
         if i != 0:
-                neighbors.update((i - 1,j))  # bottom neighbor
+                neighbors.add((i - 1,j))  # bottom neighbor
         if j != m - 1:
-                neighbors.update((i,j + 1))  # right neighbor
+                neighbors.add((i,j + 1))  # right neighbor
         if i != n - 1:
-                neighbors.update((i + 1,j))  # top neighbor
+                neighbors.add((i + 1,j))  # top neighbor
         if j != 0:
-                neighbors.update((i,j - 1))  # left neighbor
+                neighbors.add((i,j - 1))  # left neighbor
     else:
-        neighbors.update((i - 1,j), (i + 1,j), (i,j - 1), (i,j + 1))   # middle nodes
+        neighbors.add((i - 1,j))
+        neighbors.add((i + 1,j))
+        neighbors.add((i,j - 1))
+        neighbors.add((i,j + 1))   # middle nodes
     return neighbors
 
-def neighbors_subway(n,m,subway_line_num,grid):
+def create_stops(n, m):
+    stops = set()
+    for k in range(min(n, m)):
+        i, j = 1 + k, k   # (k+1,k)
+        stops.add((i, j))
+    return stops
+
+def create_EPHC(n,m,e):
+     
+    pairs = {(i, j) for i in range(1, n + 1) for j in range(1, m + 1)}  # all possible pairs (i, j)
+    candidates = pairs - create_stops(n,m)   # subway nodes cannot be a PHC.
+
+    random_EPHCs = random.sample(list(candidates), e)  # e many random elements as existing PHCs
+    existing = set(random_EPHCs)  
+
+    return existing
+
+def create_PPHC(n,m,e,p):
+    pairs = {(i, j) for i in range(1, n + 1) for j in range(1, m + 1)}  # all possible pairs (i, j)
+    candidates = pairs - create_stops(n, m)   # subway nodes cannot be a PHC.
     
-    neighbors = {} 
+    remaining_elements = candidates - create_EPHC(n, m, e)
+    random_PPHCs = random.sample(list(remaining_elements), p)  # Choose p random elements as possible PHCs
+    possible = set(random_PPHCs)
 
-    sub_line = 0
-    while sub_line < subway_line_num:
-        rand_i = random.randint(0,n)
-        rand_j = random.randint(0,m)
-        neighbors[(rand_i,rand_j)] = [grid[(rand_i,rand_j)], 0]  # add a node at i,j position with transition cost = 0.
+    return possible
 
-
-        sub_line += 1
-    return neighbors
-
-def subway_nodes(n,m):
-    V_s = {}
-    Origin = (1,0)
-    Destination = (n-1,m) 
-    k = 0
-
-    while k < n-1:
-        v_k = (1,0) + (k,k)
-
-        k += 1
-        
-    return
-
-
-def travel_time(t):
+def travel_time(name): # shortest path algorithm hesaplayacak.
     result = 1
     return result
 
+def create_grid(n, m, e, p, p_min, p_max):
 
-def grid(n,m,e,p):
-
-    # number of subway lines
-    subway_line_num = 2
-
-    # Generate all possible pairs (i, j) 
-    pairs = {(i, j) for i in range(1, n + 1) for j in range(1, m + 1)}
-
-    # Define subway stops
-
-    # Choose e random elements as existing PHCs
-    random_EPHCs = random.sample(list(pairs), e)
-    existing = set(random_EPHCs)
-
-    # Calculate remaining possible PHCs
-    remaining_elements = pairs - existing
-
-    # Choose p random elements as possible PHCs
-    random_PPHCs = random.sample(list(remaining_elements), p)
-    possible = set(random_PPHCs)
-    
-    EPHC = 0
-    PPHC = 0
+    # Properties: name, ID, x_axis, y_axis, population, travel_time, neighbors, EPHC, PPHC
 
     for i in range(n):
         for j in range(m):
-            if (i,j) in existing:
+            
+            # Property EPHC
+            EPHC = 0  
+            if (i,j) in create_EPHC(n,m,e):
               EPHC = 1
             else: EPHC = 0 
 
-        if (i,j) in possible:
-             PPHC = 1
-        else: PPHC = 0 
+            # Property PPHC
+            PPHC = 0   
+            if (i,j) in create_PPHC(n,m,e,p):
+              PPHC = 1
+            else: PPHC = 0 
+            
+            # Property name
+            name = (i,j)
 
-        name = (i,j)
+            # Property ID
+            id = create_id(name,n,m)
 
-        node = cl.Node(name, id(name), x_axis(name), y_axis(name), population(name), 
-                        travel_time(name), neighbors(name,n,m), neighbors_subway(n,m,subway_line_num),
-                         EPHC, PPHC) # Call property functions of nodes
-        
-        grid[(i,j)] = node
+            # Property x_axis
+            x_axis = create_x_axis(name)
 
-        if EPHC == 1:
-            V_EPHC[(i,j)] = node  
-        if PPHC == 1:
-            V_PPHC = [(i,j)] = node
+            # Property y_axis
+            y_axis = create_y_axis(name)
 
-        return 
+            # Property population
+            population = create_population(name,n,m,p_min,p_max)
 
-def grid_edges():
-    return 
+            # Property neighbors
+            neighbors = create_neighbors(name,n,m)
 
-def create_grid(n,m,e,p):
-    return
+            # Property travel time
+            # Call it from traveltime.py
 
-# Columns of an edge: ID, type, line, tail, head, travel_time
-E_blocks = {}  # initialize a dictionary for edges between blocks
+            # Assign properties of each class.
+            node = cl.Node(name, id, x_axis, y_axis, population, 
+                        [], neighbors, EPHC, PPHC) 
 
-for (i,j) in range(n,m):
-    for (s,r) in range (n,m):
-        ID = ((i,j),(s,r))
-        "line = define this after adding a transportation network"
-        "type = define this after adding a transportation network"
-        tail = (i,j)    #Should I take this as a dictionary and connect to the node?
-        head = (s,r)
-        # travel_time = Do I need that?
-        edge = cl.Edge(ID, [], [], tail, head, [])
-        E_blocks[(i,j),(r,s)] = edge
+            # All nodes
+            grid[(i,j)] = node
+            
+            # V_stops and V_blocks
+            if id == 1:
+                V_stops[(i,j)] = node  
+            else:
+                V_blocks[(i,j)] = node
+
+            # V_existing
+            if EPHC == 1:
+                V_existing[(i,j)] = node
+
+            #V_possible
+            if PPHC == 1:
+                V_possible[(i,j)] = node
+
+            # Population list            
+            pop.append(population)
+    
+    return grid, V_stops, V_blocks, V_existing, V_possible, pop
