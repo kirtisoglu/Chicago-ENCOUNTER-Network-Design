@@ -14,11 +14,11 @@ class Node:
 
 
 def find_path(grid, source, target):
-    Q = []
-    visited_list = []
-    path = []
+    Q = []  # maintain nodes to be processed
+    visited_list = []  # keep track of visited nodes
+    path = []  # store the final path
 
-    for n in grid:
+    for n in grid:  # Initalization loop
         n.distance = float('inf')
         n.neighbours.clear()
         n.visited = False
