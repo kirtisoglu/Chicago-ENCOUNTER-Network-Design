@@ -10,7 +10,7 @@ V_existing = {}  # set of vertices corresponding to existing PHCs
 V_possible = {}  # set of vertices corresponding to possible PHCs
 pop = [] # list of populations
 
-def create_id(name,n,m):
+def create_id(name,n,m):  # stops take 1, blocks take 0.
     if name in create_stops(n, m):      # stop nodes  
         result = 1    
     else: 
@@ -41,99 +41,126 @@ def create_population(name,n,m,p_min,p_max):
     return result
 
 def create_neighbors(name,n,m):
+ 
     i = name[0]
     j = name[1]
     neighbors = set()   
-    if i == 0 or i == n - 1 or j == 0 or j == m - 1:   # corners
-        if i != 0:
-                neighbors.add((i - 1,j))  # bottom neighbor
-        if j != m - 1:
-                neighbors.add((i,j + 1))  # right neighbor
-        if i != n - 1:
-                neighbors.add((i + 1,j))  # top neighbor
-        if j != 0:
-                neighbors.add((i,j - 1))  # left neighbor
-    else:
-        neighbors.add((i - 1,j))
-        neighbors.add((i + 1,j))
-        neighbors.add((i,j - 1))
-        neighbors.add((i,j + 1))   # middle nodes
+
+    # block-block/stop neighbors
+    #if i == 0 or i == n - 1 or j == 0 or j == m - 1:   # corners
+    if i != 0:
+                neighbors.add((i-1, j))  # bottom neighbor
+    if j != m - 1:
+                neighbors.add((i, j+1))  # right neighbor
+    if i != n - 1:
+                neighbors.add((i+1 ,j))  # top neighbor
+    if j != 0:
+                neighbors.add((i, j-1))  # left neighbor
+    #else:  # middle nodes
+    #    neighbors.add((i-1, j))
+    #    neighbors.add((i+1, j))
+    #    neighbors.add((i, j-1))
+    #    neighbors.add((i, j+1))   
+    
+    # stop-stop neighbors
+    if name in create_stops(n,m):
+        if name != (1,0) and name != (n-1, m-2):   # name is neither origin nor destination.
+            neighbors.add((i-1, j-1))   # top-right neighbor
+            neighbors.add((i +1, j+1))  # bottom-left neighbor
+        if name == (1,0):     # name is the origin.
+            neighbors.add((2, 1))  # top-right neighbor
+        if name == (n-1 , m-2):   # name is the destination.
+            neighbors.add((n-2, m-3))  # bottom-left neighbor
+
+
     return neighbors
 
 def create_stops(n, m):
     stops = set()
-    for k in range(min(n, m)):
+    for k in range(min(n-1, m-1)):
         i, j = 1 + k, k   # (k+1,k)
         stops.add((i, j))
     return stops
 
 def create_EPHC(n,m,e):
      
-    pairs = {(i, j) for i in range(1, n + 1) for j in range(1, m + 1)}  # all possible pairs (i, j)
+    pairs = {(i, j) for i in range(n) for j in range(m)}  # all possible pairs (i, j)
     candidates = pairs - create_stops(n,m)   # subway nodes cannot be a PHC.
-
     random_EPHCs = random.sample(list(candidates), e)  # e many random elements as existing PHCs
     existing = set(random_EPHCs)  
 
     return existing
 
 def create_PPHC(n,m,e,p):
-    pairs = {(i, j) for i in range(1, n + 1) for j in range(1, m + 1)}  # all possible pairs (i, j)
-    candidates = pairs - create_stops(n, m)   # subway nodes cannot be a PHC.
-    
-    remaining_elements = candidates - create_EPHC(n, m, e)
-    random_PPHCs = random.sample(list(remaining_elements), p)  # Choose p random elements as possible PHCs
+
+    pairs = {(i, j) for i in range(n) for j in range(m)}  # all possible pairs (i, j)
+    forbidden = create_EPHC(n, m, e).union(create_stops(n, m))
+    remaining = pairs - forbidden
+    random_PPHCs = random.sample(list(remaining), p)  # Choose p random elements as possible PHCs
     possible = set(random_PPHCs)
 
     return possible
 
-def travel_time(name): # shortest path algorithm hesaplayacak.
-    result = 1
+def create_distance(name,n,m, d_b, d_s): # distance in minutes between two neighbors. Dictionary.
+
+    result = {}  # key: neighbor. value: distance from name to neighbor
+
+    for neighbor in create_neighbors(name,n,m):
+        if name and neighbor in create_stops(n,m): # if both nodes are stops
+            dist_neighbor = {neighbor: d_s}  # the distance between consecutive stops is 3 minutes.
+            result.update(dist_neighbor)
+        else:  
+            dist_neighbor = {neighbor: d_b}  # the distance of block to its any neighbor is 5 minutes.
+            result.update(dist_neighbor)
+        
     return result
 
-def create_grid(n, m, e, p, p_min, p_max):
+def create_grid(n, m, e, p, p_min, p_max, d_b, d_s):
 
-    # Properties: name, ID, x_axis, y_axis, population, travel_time, neighbors, EPHC, PPHC
+    existings = create_EPHC(n,m,e)
+    possibles = create_PPHC(n,m,e,p)
+
+    # Properties: name, ID, x_axis, y_axis, population, distance, neighbors, EPHC, PPHC
 
     for i in range(n):
         for j in range(m):
             
             # Property EPHC
             EPHC = 0  
-            if (i,j) in create_EPHC(n,m,e):
-              EPHC = 1
+            if (i,j) in existings:
+                EPHC = 1
             else: EPHC = 0 
 
             # Property PPHC
             PPHC = 0   
-            if (i,j) in create_PPHC(n,m,e,p):
-              PPHC = 1
+            if (i,j) in possibles:
+                PPHC = 1
             else: PPHC = 0 
             
             # Property name
             name = (i,j)
 
             # Property ID
-            id = create_id(name,n,m)
+            id = create_id(name,n,m)  # 0 or 1
 
             # Property x_axis
-            x_axis = create_x_axis(name)
+            x_axis = create_x_axis(name)  # integer
 
             # Property y_axis
-            y_axis = create_y_axis(name)
+            y_axis = create_y_axis(name)  # integer
 
             # Property population
-            population = create_population(name,n,m,p_min,p_max)
+            population = create_population(name,n,m,p_min,p_max)  # integer
 
             # Property neighbors
-            neighbors = create_neighbors(name,n,m)
+            neighbors = create_neighbors(name,n,m)  # set
 
-            # Property travel time
-            # Call it from traveltime.py
+            # Property distance
+            distance = create_distance(name,n,m, d_b, d_s)  # dictionary
 
             # Assign properties of each class.
             node = cl.Node(name, id, x_axis, y_axis, population, 
-                        [], neighbors, EPHC, PPHC) 
+                        distance, neighbors, EPHC, PPHC) 
 
             # All nodes
             grid[(i,j)] = node
@@ -147,7 +174,7 @@ def create_grid(n, m, e, p, p_min, p_max):
             # V_existing
             if EPHC == 1:
                 V_existing[(i,j)] = node
-
+            
             #V_possible
             if PPHC == 1:
                 V_possible[(i,j)] = node

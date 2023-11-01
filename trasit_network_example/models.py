@@ -10,61 +10,46 @@ alpha = 0.02
 
 "-------Model 1: Integer Programming Model-------"
 
-# Decision Variables
-
-             # y_j ∈ {0, 1} locates facility j.
-
-def objective_function():  # Accessibility function
+def model_selection(model_name):
+    
     return
 
-def constraint_1(E, y_j): 
-    for all j in E
-    y_j = 1
+def model_1_objective_function(x, N):
+    return sum(x[i, j] for i in V_b for j in N)
+
+def model_1_constraints():
     return
 
+def model_1_constaint_1(y, E):
+    return [y[j] == 1 for j in E]
 
+def model_1_constaint_2(y, N, m):
+    return sum(y[j] for j in N) <= m
 
-# Creating the task_schedule with the correct dimensions (num_groups_corrected, num_tasks, num_days)
-task_schedule = np.zeros((num_groups_corrected, num_tasks, num_days), dtype=int)
+def model_1_constaint_3(x, V_b, E, N):
+    return [sum(x[i, j] for i in V_b) == 1 for j in E]
 
-def constraint_1(task_schedule):
-    total_overlaps = 0
-    
-    # Iterate through days and tasks to count overlaps
-    for day in range(num_days):
-        for task in range(num_tasks):
-            groups_assigned = np.where(task_schedule[:, task, day] == 1)[0]
-            overlaps = len(groups_assigned) - 1 
-            total_overlaps += overlaps
-    
-    return total_overlaps
+def model_1_constaint_4(x, V_b, E, N, b):
+    return [sum(x[i, j] for j in E + N) <= b * y[j] for i in V_b for j in E + N]
 
-def constraint_2(task_schedule):
-    total_double_assignments = 0
-    
-    # Iterate through days and groups to count double assignments
-    for day in range(num_days):
-        for group in range(num_groups_corrected):
-            tasks_assigned = np.where(task_schedule[group, :, day] == 1)[0]
-            assignments = len(tasks_assigned)
-            if assignments > 1:
-                total_double_assignments += assignments - 1
-            else:
-                total_double_assignments=0
-    return total_double_assignments
+def model_1_constaint_5(x, V_b, E, N):
+    return [y[j] <= sum(x[i, j] for i in V_b) for j in E + N]
 
-def constraint_3(task_schedule):
-    total_overlaps_of_task = 0
-    
-    for group in range(num_groups_corrected):
-        for task in range(num_tasks):
-            task_assigned = np.where(task_schedule[group, task, : ] == 1)[0]
-            overlaps = len(task_assigned) - 1 
-            total_overlaps_of_task += overlaps
-            if total_overlaps_of_task > 1:
-                return total_overlaps_of_task
-            else:
-                return 0
+def model_1_constaint_6(x, V_b, p, alpha, p_max, N):
+    return [sum(p[i] * x[i, j] for i in V_b) <= (1 + alpha) * p_max * d[j] for j in E + N]
+
+def model_1_constaint_7(d, N, d_t):
+    return [sum(d[j] for j in N) <= d_t]
+
+def model_1_constaint_8(y, N, r, R, d):
+    return [r * y[j] <= d[j] <= R * y[j] for j in N]
+
+def model_1_constaint_9(x, V_b, t_r, t_epsilon, E, N):
+    return [t_r[i][j] * x[i, j] <= t_epsilon for i in V_b for j in E + N]
+
+def model_1_constaint_10(y, N, c, c_t):
+    return [sum(c[j] * y[j] for j in N) <= c_t]
+
 
 "-------Model 2: Block-based Model-------"
 

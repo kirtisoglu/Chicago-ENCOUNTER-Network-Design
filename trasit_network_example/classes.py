@@ -1,17 +1,19 @@
+
+
 class Node():
-    def __init__(self, name, ID, x_axis, y_axis, population, travel_time, neighbors, EPHC, PPHC):
+    def __init__(self, name, ID, x_axis, y_axis, population, distance, neighbors, EPHC, PPHC):
         self.name = name
         self.ID = ID
         self.x_axis = x_axis
         self.y_axis = y_axis
         self.population = population
-        self.travel_time = travel_time
+        self.distance = distance
         self.neighbors = neighbors
         self.EPHC = EPHC
         self.PPHC = PPHC
 
-    def get_node_travel_time(self):
-        return self.travel_time
+    def get_node_distance(self):
+        return self.distance
 
     def get_node_population(self):
         return self.population       
@@ -62,3 +64,5 @@ class Node():
 
     def get_edge_travel_time(self):
         return self.travel_time """
+
+
