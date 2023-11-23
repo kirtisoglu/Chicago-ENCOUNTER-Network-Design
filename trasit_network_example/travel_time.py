@@ -1,4 +1,6 @@
 import heapq
+import numpy as np
+import pandas as pd
 
 #      LIBRARY EXPLANATIONS
 
@@ -23,10 +25,24 @@ def travel_time_to_source(grid, source):
         
         for neighbor in grid[current_node].get_node_neighbors():
             temporary_travel_time = current_travel_time + grid[current_node].get_node_distance()[neighbor]
-            
+
             # If a shorter path is found, update the travel_time and push it to the priority queue
             if temporary_travel_time < travel_time[neighbor]:
                 travel_time[neighbor] = temporary_travel_time
                 heapq.heappush(priority_queue, (temporary_travel_time, neighbor))
     
     return travel_time 
+
+
+
+def travel_time(grid, existing, possible):
+    
+    t = {}    
+    sources = {**existing, **possible}
+
+    for j in sources.keys():
+        to_source = travel_time_to_source(grid, j)
+        for i in grid.keys():
+            t[(i, j)] = to_source[i]
+
+    return t

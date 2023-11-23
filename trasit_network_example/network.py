@@ -1,6 +1,7 @@
 import classes as cl
 import numpy as np
 import random 
+import travel_time as travel
 
 
 grid = {}  # dictionary for grid
@@ -168,8 +169,6 @@ def create_grid(n, m, e, p, p_min, p_max, d_b, d_s):
             # V_stops and V_blocks
             if id == 1:
                 V_stops[(i,j)] = node  
-            else:
-                V_blocks[(i,j)] = node
 
             # V_existing
             if EPHC == 1:
@@ -177,9 +176,10 @@ def create_grid(n, m, e, p, p_min, p_max, d_b, d_s):
             
             #V_possible
             if PPHC == 1:
-                V_possible[(i,j)] = node
+                V_possible[(i,j)] = node       
 
-            # Population list            
-            pop.append(population)
+            if id == 0 and EPHC == 0 and PPHC == 0:
+                V_blocks[(i,j)] = node
+                pop.append(population)
     
     return grid, V_stops, V_blocks, V_existing, V_possible, pop
