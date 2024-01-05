@@ -30,14 +30,9 @@ def create_y_axis(name):
     pos_y = j + noise_y
     return pos_y
 
-def create_population(name,n,m,p_min,p_max):
-    i = name[0]
-    j = name[1]
-
-    if name in create_stops(n,m):
-        result = 0  # population of a stop node is zero.
-    else:            
-        result =  random.randrange(p_min,p_max)
+def create_population(p_min,p_max):
+           
+    result =  random.randrange(p_min,p_max)
     
     return result
 
@@ -57,11 +52,7 @@ def create_neighbors(name,n,m):
                 neighbors.add((i+1 ,j))  # top neighbor
     if j != 0:
                 neighbors.add((i, j-1))  # left neighbor
-    #else:  # middle nodes
-    #    neighbors.add((i-1, j))
-    #    neighbors.add((i+1, j))
-    #    neighbors.add((i, j-1))
-    #    neighbors.add((i, j+1))   
+
     
     # stop-stop neighbors
     if name in create_stops(n,m):
@@ -73,8 +64,8 @@ def create_neighbors(name,n,m):
         if name == (n-1 , m-2):   # name is the destination.
             neighbors.add((n-2, m-3))  # bottom-left neighbor
 
-
     return neighbors
+
 
 def create_stops(n, m):
     stops = set()
@@ -151,7 +142,7 @@ def create_grid(n, m, e, p, p_min, p_max, d_b, d_s):
             y_axis = create_y_axis(name)  # integer
 
             # Property population
-            population = create_population(name,n,m,p_min,p_max)  # integer
+            population = create_population(p_min,p_max)  # integer
 
             # Property neighbors
             neighbors = create_neighbors(name,n,m)  # set
@@ -180,7 +171,8 @@ def create_grid(n, m, e, p, p_min, p_max, d_b, d_s):
 
             if id == 0 and EPHC == 0 and PPHC == 0:
                 V_blocks[(i,j)] = node
-                pop.append(population)
+            
+            pop.append(population)
     
     all_facilities = {**V_existing, **V_possible}
     total_pop = np.sum(pop)

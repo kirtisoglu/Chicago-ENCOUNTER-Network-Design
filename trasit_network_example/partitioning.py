@@ -11,16 +11,16 @@ from pulp import LpProblem, LpVariable, lpSum, LpMinimize, LpBinary, PULP_CBC_CM
 # We model an integer programming to solve this problem, and find an exact solution by pulp library. 
 
 
-def multiway_number_partitioning(blocks, existing, time):
+def multiway_number_partitioning(blocks, locations, time):
 
 
     problem = LpProblem("Multiway_Number_Partitioning", LpMinimize)
 
-    binary_matrix = {(i, j): LpVariable(f"x_{i}_{j}", cat="Binary") for i in blocks.keys() for j in existing.keys()}
+    binary_matrix = {(i, j): LpVariable(f"x_{i}_{j}", cat="Binary") for i in blocks.keys() for j in locations.keys()}
 
     # Constraint: Every number is assigned to one set.
     for i in blocks.keys():
-        problem += lpSum(binary_matrix[i, j] for j in existing.keys()) == 1
+        problem += lpSum(binary_matrix[i, j] for j in locations.keys()) == 1
 
     # Calculate the weight of a set
     def set_weight(set_index):
@@ -31,7 +31,7 @@ def multiway_number_partitioning(blocks, existing, time):
     min_set_weight = LpVariable("min_set_weight", lowBound=0)
 
     # Add constraints to set the values of max_set_weight and min_set_weight
-    for j in existing.keys():
+    for j in locations.keys():
         problem += min_set_weight <= set_weight(j)
         problem += max_set_weight >= set_weight(j)
 
@@ -42,10 +42,10 @@ def multiway_number_partitioning(blocks, existing, time):
     problem.solve(PULP_CBC_CMD(msg=0, timeLimit=time))
 
     # Assign selected sets
-    solution = {(i, j): int(binary_matrix[i, j].varValue) for i in blocks.keys() for j in existing.keys()}
+    solution = {(i, j): int(binary_matrix[i, j].varValue) for i in blocks.keys() for j in locations.keys()}
 
     # Calculate weights using lpSum directly
-    weights = [lpSum(blocks[i].get_node_population() * solution[i, j] for i in blocks.keys()) for j in existing.keys()]
+    weights = [lpSum(blocks[i].get_node_population() * solution[i, j] for i in blocks.keys()) for j in locations.keys()]
 
 
     return problem.objective.value(), weights, solution
