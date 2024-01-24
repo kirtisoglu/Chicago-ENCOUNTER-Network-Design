@@ -34,6 +34,7 @@ from pulp import LpProblem, LpVariable, lpSum, LpMinimize, LpBinary, PULP_CBC_CM
 # Basically, the code assigns blocks in block.keys() to facilities/sets/locations in location.keys(). 
 
 
+# Define a function f(x), where x=(blocks, locations, time).
 def multiway_number_partitioning(blocks, locations, time):
 
 
@@ -70,7 +71,7 @@ def multiway_number_partitioning(blocks, locations, time):
     # Calculate weights using lpSum directly
     weights = [lpSum(blocks[i].get_node_population() * solution[i, j] for i in blocks.keys()) for j in locations.keys()]
 
-
+    # return f(x)
     return problem.objective.value(), weights, solution
 
 
