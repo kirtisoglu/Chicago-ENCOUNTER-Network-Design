@@ -29,8 +29,8 @@ def sample_tree(G):
 # Generate an initial partition / solution
 
 #     Initialize set of clusters: $C = \{ \}$.  (Dictionary. key: cluster name, value: list of vertices)
-#    Determine the set of the connected components in $G$, $\mathcal{G}=\{G_1, G_2, ..., G_k\}$. 
-#    Repeat until $\mathcal{G} = \emptyset$.
+#     Determine the set of the connected components in $G$, $\mathcal{G}=\{G_1, G_2, ..., G_k\}$. 
+#     Repeat until $\mathcal{G} = \emptyset$.
 #
 #        For each component $G_i$, do:
 #
@@ -53,25 +53,53 @@ def generate_initial_partition(G, grid, open_facilities):  # cuts random p-1 edg
     populations = {}
 
     spanning_tree = sample_tree(G)
-    tree = spanning_tree.copy(as_view=False)
 
-    while len(tree.nodes) > 0:  
-        S = list(nx.connected_components(tree))
+
+    tree = spanning_tree.copy(as_view=False)
+    S = list(nx.connected_components(tree)) # list of sets of nodes
+
+    while len(tree.nodes) > 0:  # neden nodelarin sayisi sifirdan buyukse
         
-        for component in S:
-            facilities_in_component = list(set(open_facilities).intersection(component))
+        #print("Num of components in Tree: ", len(S))
+
+        for component in S: # component is a set of nodes 
+            #print("component nodes:", component)
+            facilities_in_component = [value for value in open_facilities if value in list(component)]
 
             if len(facilities_in_component) == 1:
+                #print("num of facilities_in_component", len(facilities_in_component))
+                #print("facilities_in_component", facilities_in_component)
                 C[facilities_in_component[0]] = list(component)
+                #print("component", C[facilities_in_component[0]])
                 tree.remove_nodes_from(component)
-            else:   
+                #print("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
+            else:  
+                #print("facilities in compoenent (else)", facilities_in_component) 
+                #print("num of facilities_in_component (else)", len(facilities_in_component))
                 u = random.choice(facilities_in_component)
-                paths = {v: nx.shortest_path(tree, source=u, target=v) for v in facilities_in_component if v != u}
-                closest = min((len(paths[v]), v) for v in paths.keys())[1]
+                #print("u:", u)
+                paths = {v: nx.shortest_path(tree, source=u, target=v) for v in facilities_in_component if v != u} # dictionary. key: target node v, value: list of nodes 
+                #print("paths", paths)
+                lengths = {}
+                k = 500
+                closest = (0,0)
+                for v in paths.keys():   
+                   if len(paths[v]) < k:
+                        k = len(paths[v])
+                        closest = v
+                #closest = min((len(paths[v]), v) for v in paths.keys())[1]  # ?
+                
+            
+                #print("closest:", closest)
                 path = tree.subgraph(paths[closest])
+                #print("path nodes", path.nodes)
                 edge = random.choice(list(path.edges))
-                tree.remove_edge(*edge)
-    
+                #print("removed edge:", edge)
+                tree.remove_edge(*edge)  # one edge is removed from the tree. 
+            #print("####################################################") 
+
+        S = list(nx.connected_components(tree)) # list of sets of nodes
+
     for center in C.keys():
         populations[center] = 0
 
@@ -88,15 +116,28 @@ def generate_initial_partition(G, grid, open_facilities):  # cuts random p-1 edg
         if index > 1:
             partitioned_tree = nx.union(partitioned_tree, graph)
 
-
     return partitioned_tree, spanning_tree, C, populations
+
+
+# 0. Initialize 
+#               clusters: 
+#               partitioned_tree: Currently empty. Will be the final subgraph with p components.
+#               populations: measures the populations of clusters
+#               components:
+
+# 1. Generate a spanning tree T of graph G. Let T' be a copy of T. 
+# 2. Put T in the list of components. Currently, |components| = 1.
+# 3. While |components| < |open_facilities|, do:
+#       for every component in compinents, do:
+
+# 
 
 
 def generate_initial_solution1(G, grid, open_facilities):
     
     clusters = {}  #  key: cluster name,  value: list of vertices
-    partitioned_tree = nx.empty_graph(0)
-    populations = {}
+    partitioned_tree = nx.empty_graph(0) 
+    populations = {}  # key: center node,  value: total population of blocks assigned to that center
     components = []
 
     spanning_tree = sample_tree(G)
@@ -125,7 +166,7 @@ def generate_initial_solution1(G, grid, open_facilities):
 
             for component in S:
                 facilities = list(set(open_facilities).intersection(component.nodes))
-                print(facilities)
+                #print(facilities)
 
                 if len(facilities) <= 1:
                     partitioned_tree = nx.union(partitioned_tree, component)
@@ -177,13 +218,13 @@ def exact_neighborhood(tree, clusters):  # exact neighborhood is defined for Des
             boundaries[(origin, cluster)] = list(nx.node_boundary(tree, clusters[cluster], clusters[origin]))
 
             for migrating_node in boundaries[(origin, cluster)]:
-                print("migrating_node=", migrating_node)
+                #print("migrating_node=", migrating_node)
                 new_clusters = clusters.copy()
                 new_clusters[origin].remove(migrating_node)
                 subgraph = nx.induced_subgraph(tree, new_clusters[origin])
-                print("number of components in origin= ", len(list(nx.connected_components(subgraph))))
+                #print("number of components in origin= ", len(list(nx.connected_components(subgraph))))
                 if len(list(nx.connected_components(subgraph))) == 1:       # remove migrating node from its cluster and check if the cluster is connected
-                    print("number of components in origin - after = ", len(list(nx.connected_components(subgraph))))
+                    #print("number of components in origin - after = ", len(list(nx.connected_components(subgraph))))
                     new_clusters[cluster].append(migrating_node)
 
                     neighborhood[migrating_node] = new_clusters
@@ -196,6 +237,11 @@ def exact_neighborhood(tree, clusters):  # exact neighborhood is defined for Des
     return origin, boundaries, neighborhood
 
 
+def random_neighbor():
+
+
+
+    return
 
 # Ricca uses three objective functions. Population equality, compactness, conformity to administrative boundaries. 
 # We take only one of them: populuation equality. We need one more objective function: accessibility. 
@@ -251,7 +297,7 @@ def objective_function(grid, clusters, travel):
 # are evaluated. Indeed, if $M$ is very large, the algorithm can occasionally perform even better than other local search algorithms. Ricca et. al. takes $M = 80,000$.
 # Because, $M = 80,000$ has shown to be sufficient to guarantee that all the heuristic achieve their best solution.
 
-def multistart_descent_search(grid, G, travel, open_facilities, alpha, num_iterations):
+def multistart_descent_search(grid, G, travel, open_facilities, alpha, num_iterations, initial_solution):
 
     iteration_results = {}
 
@@ -260,7 +306,7 @@ def multistart_descent_search(grid, G, travel, open_facilities, alpha, num_itera
         if iteration % 500 == 0:
             print("iteration = ", iteration)
 
-        tree, initial_solution, population = generate_initial_partition(G, grid, open_facilities)
+        #tree, initial_solution, population = generate_initial_partition(G, grid, open_facilities)
         current_solution = initial_solution
         current_energy_pop, current_energy_access = objective_function(grid, current_solution, travel)
 

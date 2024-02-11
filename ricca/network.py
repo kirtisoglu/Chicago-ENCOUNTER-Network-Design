@@ -11,12 +11,6 @@ V_existing = {}  # set of vertices corresponding to existing PHCs
 V_possible = {}  # set of vertices corresponding to possible PHCs
 pop = [] # list of populations
 
-def create_id(name,n,m):  # stops take 1, blocks take 0.
-    if name in create_stops(n, m):      # stop nodes  
-        result = 1    
-    else: 
-        result = 0     
-    return result
 
 def create_x_axis(name):
     i = name[0]
@@ -77,21 +71,23 @@ def create_stops(n, m):
 def create_EPHC(n,m,e):
      
     pairs = {(i, j) for i in range(n) for j in range(m)}  # all possible pairs (i, j)
-    candidates = pairs - create_stops(n,m)   # subway nodes cannot be a PHC.
+    stops = create_stops(n,m)
+    candidates = pairs - stops   # subway nodes cannot be a PHC.
     random_EPHCs = random.sample(list(candidates), e)  # e many random elements as existing PHCs
     existing = set(random_EPHCs)  
 
-    return existing
+    return existing, stops
 
 def create_PPHC(n,m,e,p):
 
     pairs = {(i, j) for i in range(n) for j in range(m)}  # all possible pairs (i, j)
-    forbidden = create_EPHC(n, m, e).union(create_stops(n, m))
+    existing, stops = create_EPHC(n, m, e)
+    forbidden = existing.union(stops)
     remaining = pairs - forbidden
     random_PPHCs = random.sample(list(remaining), p)  # Choose p random elements as possible PHCs
     possible = set(random_PPHCs)
 
-    return possible
+    return existing, possible, stops
 
 def create_distance(name,n,m, d_b, d_s): # distance in minutes between two neighbors. Dictionary.
 
@@ -109,8 +105,7 @@ def create_distance(name,n,m, d_b, d_s): # distance in minutes between two neigh
 
 def create_grid(n, m, e, p, p_min, p_max, d_b, d_s):
 
-    existings = create_EPHC(n,m,e)
-    possibles = create_PPHC(n,m,e,p)
+    possibles, existings, stops = create_PPHC(n,m,e,p)
 
     # Properties: name, ID, x_axis, y_axis, population, distance, neighbors, EPHC, PPHC
 
@@ -133,7 +128,10 @@ def create_grid(n, m, e, p, p_min, p_max, d_b, d_s):
             name = (i,j)
 
             # Property ID
-            id = create_id(name, n, m)  # 0 or 1
+            if (i,j) in stops:
+                id = 1  
+            else: 
+                id = 0
 
             # Property x_axis
             x_axis = create_x_axis(name)  # integer

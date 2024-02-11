@@ -37,8 +37,16 @@ def build_graph(grid, blocks, stops, existings, possibles):
     return G
 
 
+def random_centers(existing, possible, p):
 
-def distance(p1, p2):
+    openings = random.sample(list(possible.keys()), k=p)
+    centers = list(existing.keys()) + openings
+
+    return centers
+
+
+
+def distance(p1, p2):  # Euclidean distance
     return np.sum(np.square(p1 - p2))
   
 def choose_centers_kmeans2(grid, existing, possibles, p):  
@@ -63,13 +71,14 @@ def choose_centers_kmeans2(grid, existing, possibles, p):
     return list_of_tuples
 
 def choose_centers_kmeans_3(grid, existing, possibles, p): 
-    possible_centroids = np.array([np.array(tuple) for tuple in possibles.keys()])
+    possible_centroids = np.array([np.array(tuple) for tuple in possibles.keys()])  # 10 locations
 
-    centroids = list(existing.keys())
+    centroids = list(existing.keys())  # currently 5 locations. 5 will come from possibles.
+    
     if len(possible_centroids) >= p:
 
-        for _ in range(p):
-            # Compute distances from points to the nearest centroid
+        for _ in range(p):  # repeat the following procedure p times
+            # Compute distances from points to their nearest centroids. |distances| = |possible_centroids|
             distances = [min(distance(point, centroid) for centroid in centroids) for point in possible_centroids]
             # Choose the next centroid with probability proportional to squared distance
             probabilities = np.array(distances) / np.sum(distances)
@@ -79,6 +88,9 @@ def choose_centers_kmeans_3(grid, existing, possibles, p):
             possible_centroids = np.delete(possible_centroids, next_centroid_index, axis=0)
 
     else:
+
+
+
         print("Error: Not enough possible centroids for k-means")
 
     # Convert each centroid to a tuple before creating the final list
