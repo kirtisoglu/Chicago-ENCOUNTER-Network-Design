@@ -188,7 +188,7 @@ def plot_graph(graph, stops, possibles, existings, all_facilities, centers, node
 
     return
 
-def plot_graph_clusters(graph, stops, possibles, existings, all_facilities, centers, node_size, subgraphs, boundaries, origin):
+def plot_graph_clusters(graph, stops, possibles, existings, all_facilities, centers, node_size, subgraphs):
 
     # block attribute -> id = 0
     # stop attribute -> id = 1
@@ -281,7 +281,7 @@ def plot_graph_clusters(graph, stops, possibles, existings, all_facilities, cent
 
 
 def plot_graph_clusters_boundaries(graph, stops, possibles, existings, all_facilities, centers, node_size, subgraphs, boundaries, origin):
-
+    print("clusters:", subgraphs)
     # block attribute -> id = 0
     # stop attribute -> id = 1
     # existing attribute -> id = 2
@@ -332,7 +332,6 @@ def plot_graph_clusters_boundaries(graph, stops, possibles, existings, all_facil
             options = {"node_size": node_size, "alpha": 0.7}
             index = list_keys.index(center)
             nx.draw_networkx_nodes(graph, node_positions, nodelist=subgraphs[center], node_color=open_colors[index], **options)
-
     
 
     induced_stops= graph.subgraph(list_stops)

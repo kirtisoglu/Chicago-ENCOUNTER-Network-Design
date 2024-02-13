@@ -38,7 +38,7 @@ def travel_time_to_source(grid, source):
 
 def travel_time(grid, existing, possible):
     
-    t = {}    
+    t = {}  # key: (node i, facility j), value: travel time from node i to facility j
     sources = {**existing, **possible}
 
     for j in sources.keys():
