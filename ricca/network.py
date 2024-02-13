@@ -11,12 +11,6 @@ V_existing = {}  # set of vertices corresponding to existing PHCs
 V_possible = {}  # set of vertices corresponding to possible PHCs
 pop = [] # list of populations
 
-def create_id(name,n,m):  # stops take 1, blocks take 0.
-    if name in create_stops(n, m):      # stop nodes  
-        result = 1    
-    else: 
-        result = 0     
-    return result
 
 def create_x_axis(name):
     i = name[0]
@@ -30,14 +24,9 @@ def create_y_axis(name):
     pos_y = j + noise_y
     return pos_y
 
-def create_population(name,n,m,p_min,p_max):
-    i = name[0]
-    j = name[1]
-
-    if name in create_stops(n,m):
-        result = 0  # population of a stop node is zero.
-    else:            
-        result =  random.randrange(p_min,p_max)
+def create_population(p_min,p_max):
+           
+    result =  random.randrange(p_min,p_max)
     
     return result
 
@@ -57,11 +46,7 @@ def create_neighbors(name,n,m):
                 neighbors.add((i+1 ,j))  # top neighbor
     if j != 0:
                 neighbors.add((i, j-1))  # left neighbor
-    #else:  # middle nodes
-    #    neighbors.add((i-1, j))
-    #    neighbors.add((i+1, j))
-    #    neighbors.add((i, j-1))
-    #    neighbors.add((i, j+1))   
+
     
     # stop-stop neighbors
     if name in create_stops(n,m):
@@ -73,8 +58,8 @@ def create_neighbors(name,n,m):
         if name == (n-1 , m-2):   # name is the destination.
             neighbors.add((n-2, m-3))  # bottom-left neighbor
 
-
     return neighbors
+
 
 def create_stops(n, m):
     stops = set()
@@ -86,21 +71,23 @@ def create_stops(n, m):
 def create_EPHC(n,m,e):
      
     pairs = {(i, j) for i in range(n) for j in range(m)}  # all possible pairs (i, j)
-    candidates = pairs - create_stops(n,m)   # subway nodes cannot be a PHC.
+    stops = create_stops(n,m)
+    candidates = pairs - stops   # subway nodes cannot be a PHC.
     random_EPHCs = random.sample(list(candidates), e)  # e many random elements as existing PHCs
     existing = set(random_EPHCs)  
 
-    return existing
+    return existing, stops
 
 def create_PPHC(n,m,e,p):
 
     pairs = {(i, j) for i in range(n) for j in range(m)}  # all possible pairs (i, j)
-    forbidden = create_EPHC(n, m, e).union(create_stops(n, m))
+    existing, stops = create_EPHC(n, m, e)
+    forbidden = existing.union(stops)
     remaining = pairs - forbidden
     random_PPHCs = random.sample(list(remaining), p)  # Choose p random elements as possible PHCs
     possible = set(random_PPHCs)
 
-    return possible
+    return existing, possible, stops
 
 def create_distance(name,n,m, d_b, d_s): # distance in minutes between two neighbors. Dictionary.
 
@@ -118,8 +105,7 @@ def create_distance(name,n,m, d_b, d_s): # distance in minutes between two neigh
 
 def create_grid(n, m, e, p, p_min, p_max, d_b, d_s):
 
-    existings = create_EPHC(n,m,e)
-    possibles = create_PPHC(n,m,e,p)
+    possibles, existings, stops = create_PPHC(n,m,e,p)
 
     # Properties: name, ID, x_axis, y_axis, population, distance, neighbors, EPHC, PPHC
 
@@ -142,7 +128,10 @@ def create_grid(n, m, e, p, p_min, p_max, d_b, d_s):
             name = (i,j)
 
             # Property ID
-            id = create_id(name, n, m)  # 0 or 1
+            if (i,j) in stops:
+                id = 1  
+            else: 
+                id = 0
 
             # Property x_axis
             x_axis = create_x_axis(name)  # integer
@@ -151,7 +140,7 @@ def create_grid(n, m, e, p, p_min, p_max, d_b, d_s):
             y_axis = create_y_axis(name)  # integer
 
             # Property population
-            population = create_population(name,n,m,p_min,p_max)  # integer
+            population = create_population(p_min,p_max)  # integer
 
             # Property neighbors
             neighbors = create_neighbors(name,n,m)  # set
@@ -180,7 +169,8 @@ def create_grid(n, m, e, p, p_min, p_max, d_b, d_s):
 
             if id == 0 and EPHC == 0 and PPHC == 0:
                 V_blocks[(i,j)] = node
-                pop.append(population)
+            
+            pop.append(population)
     
     all_facilities = {**V_existing, **V_possible}
     total_pop = np.sum(pop)
