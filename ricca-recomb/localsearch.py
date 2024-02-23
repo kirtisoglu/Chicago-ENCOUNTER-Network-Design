@@ -2,7 +2,6 @@ import networkx as nx
 import random
 import copy
 import collections
-import sample
 
 import random
 from typing import (
@@ -348,6 +347,85 @@ def generate_initial_solution1(G, grid, open_facilities):
 # The choice of the migrating node within the boundary of the origin-district depends on the heuristic at hand. The Descent algorithm and 
 # the first of the Tabu Search implementations make use of exact neighborhoods, that is, they look at all the feasible solutions in the neighborhood 
 # (equivalently, all the nodes in the boundary) in order to find the best one.
+
+
+
+def generate_initial_partition_seed(G, grid, possible, existing, p):  # cuts random p-1 edges.
+
+    clusterim = {}  #  key: cluster name,  value: list of vertices
+    populations = {}
+
+    openings = random.sample(list(possible.keys()), k=p)
+    open_facilities = list(existing.keys()) + openings
+
+    spanning_tree = uniform_spanning_tree(G)
+    # spanning_tree = sample_tree(G)
+
+
+    tree = spanning_tree.copy(as_view=False)
+    setim = list(nx.connected_components(tree)) # list of sets of nodes
+
+    while len(tree.nodes) > 0:  # neden nodelarin sayisi sifirdan buyukse
+        
+        #print("Num of components in Tree: ", len(S))
+
+        for component in setim: # component is a set of nodes 
+            #print("component nodes:", component)
+            facilities_in_component = [value for value in open_facilities if value in list(component)]
+
+            if len(facilities_in_component) == 1:
+                #print("num of facilities_in_component", len(facilities_in_component))
+                #print("facilities_in_component", facilities_in_component)
+                clusterim[facilities_in_component[0]] = list(component)
+                #print("component", C[facilities_in_component[0]])
+                tree.remove_nodes_from(component)
+                #print("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
+            else:  
+                #print("facilities in compoenent (else)", facilities_in_component) 
+                #print("num of facilities_in_component (else)", len(facilities_in_component))
+                u = random.choice(facilities_in_component)
+                #print("u:", u)
+                paths = {v: nx.shortest_path(tree, source=u, target=v) for v in facilities_in_component if v != u} # dictionary. key: target node v, value: list of nodes 
+                #print("paths", paths)
+                lengths = {}
+                k = 500
+                closest = (0,0)
+                for v in paths.keys():   
+                   if len(paths[v]) < k:
+                        k = len(paths[v])
+                        closest = v
+                #closest = min((len(paths[v]), v) for v in paths.keys())[1]  # ?
+                
+            
+                #print("closest:", closest)
+                path = tree.subgraph(paths[closest])
+                #print("path nodes", path.nodes)
+                edge = random.choice(list(path.edges))
+                #print("removed edge:", edge)
+                tree.remove_edge(*edge)  # one edge is removed from the tree. 
+            #print("####################################################") 
+
+        setim = list(nx.connected_components(tree)) # list of sets of nodes
+
+    for center in clusterim.keys():
+        populations[center] = 0
+
+        for node in clusterim[center]:
+            populations[center] = populations[center] + grid[node].get_node_population()
+
+    # Create the partitioned graph
+    component = []
+    for center in clusterim.keys():
+        component.append(nx.induced_subgraph(spanning_tree, clusterim[center]))
+    
+    partitioned_tree = nx.union(component[0], component[1])
+    for index, graph in enumerate(component):
+        if index > 1:
+            partitioned_tree = nx.union(partitioned_tree, graph)
+
+    return partitioned_tree, spanning_tree, clusterim, populations, open_facilities
+
+
 
 def exact_neighborhood(graph, clusters):  # exact neighborhood is defined for Descent Search and the first Tabu Search implementation.  
 
@@ -956,3 +1034,88 @@ def multi_old_bachelor(graph, grid, open_facilities, travel, num_iterations, gra
 
     # 5. The final solution is the best local optimum found s *
     return iteration_results, current_iteration_initial, current_iteration_solution, current_iteration_energy_pop, current_iteration_energy_access, current_iteration_initial_pop, current_iteration_initial_access
+
+
+
+def multi_old_bachelor_seed(graph, grid, possible, existing, travel, num_iterations, granularity, a, b, c, alpha, num_inner_iterations, p):
+
+    iteration_results = {}
+    iteration = 0
+
+    # 3. num_iterations = M in the explonation above. Note that i /leq M-1, and so (1 - i/M) > 0.
+    while iteration < num_iterations:
+
+
+            # 1. Generate the same initial solution as in Descent. Change the objective ?
+        partitioned_tree, spanning_tree, initial_solution, initial_populations, initial_seeds = generate_initial_partition_seed(graph, grid, possible, existing, p)
+        initial_energy_pop, initial_energy_access = objective_function(grid, initial_solution, travel, graph) 
+        current_solution = initial_solution
+        current_energy_pop = initial_energy_pop
+        current_energy_access = initial_energy_access
+        current_seeds = initial_seeds
+
+        # 2. Define an initial threshold T_0.
+        threshold = 0
+        age = 0
+
+        inner_iteration = 0
+
+
+        while inner_iteration < num_inner_iterations:
+
+            if inner_iteration % 250 == 0:
+                print("inner_iteration = ", inner_iteration)
+            # Select at random a feasible move
+            origin, boundaries, neighborhood = exact_neighborhood(graph, current_solution)
+            migrating = random.choice(list(neighborhood.keys()))
+            neighbor = neighborhood[migrating]
+            #neighbor = random_neighbor(graph, current_solution) 
+            neighbor_energy_pop, neighbor_energy_access = objective_function(grid, neighbor, travel, graph)
+
+            # 3.1. if energy change < T_i, perform the move.
+            if neighbor_energy_access <= (1 + alpha) * current_energy_access and neighbor_energy_pop - current_energy_pop < threshold:   # worsening?
+                current_solution = neighbor
+                current_energy_pop = neighbor_energy_pop
+                current_energy_access = neighbor_energy_access
+
+                # 3.1.1. if energy change < 0  decrease the threshold: T_{i+1}:= T_i − Δ^{-}(i). --> Only close bad moves will be accepted, since we just found a good solution.
+                if neighbor_energy_pop - current_energy_pop < 0:
+                    age = 0
+                    threshold = ( ( age / a ) ** b - 1) * granularity * (1 - iteration / num_iterations ) ** c 
+
+            # 3.2. Otherwise, Δ >= T_i, increase the threshold: T_{i+1}:= T_i + Δ^{+}(i) --> We should accept worst solutions increasing T_i, since we may be trapped at a local min.
+            else: 
+                age += 1
+                threshold = ( (age / a ** b - 1) * granularity * (1 - iteration / num_iterations ) ** c )
+
+            inner_iteration += 1
+        
+        # Save the result of the curent iteration. 
+        iteration_results[iteration] = (initial_solution, current_solution, current_energy_pop, current_energy_access, initial_energy_pop, initial_energy_access)
+
+        # increase the iteration number 
+        iteration += 1
+
+
+    # Initialize the best iteration as the first iteration
+    current_iteration_initial = iteration_results[0][0]
+    current_iteration_solution = iteration_results[0][1]
+    current_iteration_energy_pop = iteration_results[0][2]
+    current_iteration_energy_access = iteration_results[0][3]
+    current_iteration_initial_pop = iteration_results[0][4]
+    current_iteration_initial_access = iteration_results[0][5]
+
+    # Compare the results of iterations
+    for iteration in range(num_iterations - 1):
+
+        if iteration_results[iteration + 1][3] <= (1 + alpha) * current_iteration_energy_access and iteration_results[iteration + 1][2] < current_iteration_energy_pop:
+            current_iteration_initial = iteration_results[iteration + 1][0]
+            current_iteration_solution = iteration_results[iteration + 1][1]
+            current_iteration_energy_pop = iteration_results[iteration + 1][2]
+            current_iteration_energy_access = iteration_results[iteration + 1][3]
+            current_iteration_initial_pop = iteration_results[iteration + 1][4]
+            current_iteration_initial_access = iteration_results[iteration + 1][5]
+
+    
+    # 5. The final solution is the best local optimum found s *
+    return iteration_results, current_iteration_initial, current_iteration_solution, current_iteration_energy_pop, current_iteration_energy_access, current_iteration_initial_pop, current_iteration_initial_access, seeds
